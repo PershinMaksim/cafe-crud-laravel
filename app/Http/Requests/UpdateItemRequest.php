@@ -11,29 +11,31 @@ class UpdateItemRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation()
-    {
-        // Если чекбокс не отмечен, поле не приходит, устанавливаем false
-        if (!$this->has('is_active')) {
-            $this->merge([
-                'is_active' => false,
-            ]);
-        } else {
-            // Если пришло значение, преобразуем его в boolean
-            $this->merge([
-                'is_active' => (bool)$this->is_active,
-            ]);
-        }
+    public function rules(): array
+{
+    return [
+        'name' => 'required|string|max:255', // убрать sometimes
+        'description' => 'nullable|string',
+        'price' => 'required|numeric|min:0', // убрать sometimes
+        'quantity' => 'required|integer|min:0', // убрать sometimes
+        'is_active' => 'required|boolean' // убрать sometimes
+    ];
     }
 
-    public function rules(): array
+    protected function prepareForValidation()
     {
-        return [
-            'name' => 'sometimes|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'price' => 'sometimes|numeric|min:0',
-            'quantity' => 'sometimes|integer|min:0',
-            'is_active' => 'sometimes|string|in:true,false,1,0'
-        ];
+        \Log::info("=== PREPARE FOR VALIDATION ===");
+        \Log::info("Original data: ", $this->all());
+        
+        // Преобразуем все поля
+        $this->merge([
+            'name' => (string) $this->name,
+            'description' => $this->description ? (string) $this->description : null,
+            'price' => (float) $this->price,
+            'quantity' => (int) $this->quantity,
+            'is_active' => filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN)
+        ]);
+        
+        \Log::info("After preparation: ", $this->all());
     }
 }

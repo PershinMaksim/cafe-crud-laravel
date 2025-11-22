@@ -5,15 +5,6 @@ use App\Http\Controllers\ItemController;
 
 Route::apiResource('items', ItemController::class);
 
-// Простой тестовый маршрут
-/*Route::get('/test', function () {
-    return response()->json([
-        'message' => 'API is working!',
-        'timestamp' => now()->toDateTimeString(),
-        'status' => 'success'
-    ]);
-});*/
-
 // Альтернативный тестовый маршрут с контроллером
 Route::get('/test2', function () {
     return [
@@ -29,3 +20,6 @@ Route::get('/test', function () {
         'timestamp' => now()
     ]);
 });
+
+Route::put('/items/{id}', [ItemController::class, 'update']);
+Route::patch('/items/{id}', [ItemController::class, 'update']);

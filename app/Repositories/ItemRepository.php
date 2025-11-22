@@ -36,11 +36,30 @@ class ItemRepository
 
     public function update(int $id, array $data): Item
     {
+        \Log::info("=== REPOSITORY UPDATE ===");
+        \Log::info("Updating item ID: {$id}");
+        \Log::info("Data received: ", $data);
+        
         $item = $this->findOrFail($id);
+        \Log::info("Item before update: ", $item->toArray());
+        
+        // Проверим, есть ли изменения
+        $changes = [];
+        foreach ($data as $key => $value) {
+            if ($item->$key != $value) {
+                $changes[$key] = "{$item->$key} => {$value}";
+            }
+        }
+        \Log::info("Detected changes: ", $changes);
+        
         $item->update($data);
         
-        return $item->fresh();
-    }
+        // Обновим модель из базы
+        $item = $item->fresh();
+        \Log::info("Item after update: ", $item->toArray());
+        
+        return $item;
+}
 
     public function delete(int $id): bool
     {

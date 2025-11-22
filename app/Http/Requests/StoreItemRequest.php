@@ -11,21 +11,6 @@ class StoreItemRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation()
-    {
-        // Если чекбокс не отмечен, поле не приходит, устанавливаем false
-        if (!$this->has('is_active')) {
-            $this->merge([
-                'is_active' => false,
-            ]);
-        } else {
-            // Если пришло значение, преобразуем его в boolean
-            $this->merge([
-                'is_active' => (bool)$this->is_active,
-            ]);
-        }
-    }
-
     public function rules(): array
     {
         return [
@@ -33,7 +18,16 @@ class StoreItemRequest extends FormRequest
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:0',
-            'is_active' => 'sometimes|accepted',
+            'is_active' => 'sometimes|boolean'
         ];
+    }
+
+    protected function prepareForValidation()
+    {
+        if ($this->has('is_active')) {
+            $this->merge([
+                'is_active' => filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN),
+            ]);
+        }
     }
 }

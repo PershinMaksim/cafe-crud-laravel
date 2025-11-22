@@ -7,91 +7,36 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\StoreItemRequest;
+use App\Http\Requests\UpdateItemRequest;
+use App\Repositories\ItemRepository;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ItemController extends Controller
 {
-    public function test()
+    protected $itemRepository;
+
+    public function __construct(ItemRepository $itemRepository)
     {
-        return response()->json([
-            'message' => 'Test method is working!',
-            'timestamp' => now()
-        ]);
+        $this->itemRepository = $itemRepository;
     }
 
-    public function index()
-    {
-        return response()->json([
-            'test' => true,
-            'message' => 'Controller is working',
-            'data' => []
-        ]);
-    }
-
-    public function show($id)
-    {
-        // Простой тест
-        return response()->json([
-            'test' => true,
-            'id_received' => $id,
-            'message' => 'Show method working'
-        ]);
-    }
-
-    public function store(StoreItemRequest $request): JsonResponse
-    {
-        try {
-            \Log::info('Store method called', $request->all());
-            
-            // Простая валидация вручную для тестирования
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'price' => 'required|numeric|min:0',
-                'quantity' => 'required|integer|min:0',
-                'is_active' => 'sometimes|boolean'
-            ]);
-
-            \Log::info('Validation passed', $validated);
-
-            // Простой ответ без репозитория
-            return response()->json([
-                'success' => true,
-                'data' => array_merge($validated, ['id' => rand(100, 999)]),
-                'message' => 'Item created successfully (test)'
-            ], 201);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Validation failed', $e->errors());
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (Exception $e) {
-            \Log::error('Store method error: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create item',
-                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
-            ], 500);
-        }
-    }
-    /*
+    /**
+     * Display a listing of the items.
+     */
     public function index(): JsonResponse
     {
         try {
-            $items = Item::all();
+            $items = $this->itemRepository->getAll();
             
             return response()->json([
                 'success' => true,
                 'data' => $items,
                 'message' => 'Items retrieved successfully',
                 'count' => $items->count()
-            ]);
-        } catch (\Exception $e) {
+            ], 200);
+
+        } catch (Exception $e) {
             Log::error('Failed to retrieve items: ' . $e->getMessage());
             
             return response()->json([
@@ -101,27 +46,28 @@ class ItemController extends Controller
             ], 500);
         }
     }
-    
-    public function store(Request $request): JsonResponse
+
+    /**
+     * Store a newly created item.
+     */
+    public function store(StoreItemRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'price' => 'required|numeric|min:0',
-                'quantity' => 'required|integer|min:0',
-                'is_active' => 'sometimes|boolean'
-            ]);
+            Log::info('Store method called', $request->validated());
 
-            $item = Item::create($validated);
-            
+            $item = $this->itemRepository->create($request->validated());
+
+            Log::info('Item created successfully', ['item_id' => $item->id]);
+
             return response()->json([
                 'success' => true,
                 'data' => $item,
                 'message' => 'Item created successfully'
             ], 201);
-        } catch (\Exception $e) {
-            Log::error('Failed to create item: ' . $e->getMessage());
+
+        } catch (Exception $e) {
+            Log::error('Store method error: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
@@ -130,25 +76,28 @@ class ItemController extends Controller
             ], 500);
         }
     }
-    
-    public function show(string $id): JsonResponse
+
+    /**
+     * Display the specified item.
+     */
+    public function show($id): JsonResponse
     {
         try {
-            $item = Item::find($id);
-            
-            if (!$item) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Item not found'
-                ], 404);
-            }
+            $item = $this->itemRepository->findOrFail($id);
             
             return response()->json([
                 'success' => true,
                 'data' => $item,
                 'message' => 'Item retrieved successfully'
-            ]);
-        } catch (\Exception $e) {
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item not found'
+            ], 404);
+            
+        } catch (Exception $e) {
             Log::error("Failed to retrieve item {$id}: " . $e->getMessage());
             
             return response()->json([
@@ -158,36 +107,51 @@ class ItemController extends Controller
             ], 500);
         }
     }
-    
-    public function update(Request $request, string $id): JsonResponse
+
+    /**
+     * Update the specified item.
+     */
+    public function update(UpdateItemRequest $request, $id): JsonResponse
     {
         try {
-            $item = Item::find($id);
-            
-            if (!$item) {
+            \Log::info("=== UPDATE METHOD STARTED ===");
+            \Log::info("ID received: " . $id);
+            \Log::info("Request data: ", $request->all());
+            \Log::info("Validated data: ", $request->validated());
+
+            // Проверим, существует ли элемент
+            $existingItem = $this->itemRepository->findById($id);
+            \Log::info("Existing item: ", $existingItem ? $existingItem->toArray() : ['not_found']);
+
+            if (!$existingItem) {
+                \Log::warning("Item not found for update: " . $id);
                 return response()->json([
                     'success' => false,
                     'message' => 'Item not found'
                 ], 404);
             }
 
-            $validated = $request->validate([
-                'name' => 'sometimes|string|max:255',
-                'description' => 'nullable|string',
-                'price' => 'sometimes|numeric|min:0',
-                'quantity' => 'sometimes|integer|min:0',
-                'is_active' => 'sometimes|boolean'
-            ]);
-
-            $item->update($validated);
+            $item = $this->itemRepository->update($id, $request->validated());
             
+            \Log::info("Item after update: ", $item->toArray());
+            \Log::info("=== UPDATE METHOD COMPLETED ===");
+
             return response()->json([
                 'success' => true,
                 'data' => $item,
                 'message' => 'Item updated successfully'
-            ]);
-        } catch (\Exception $e) {
-            Log::error("Failed to update item {$id}: " . $e->getMessage());
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            \Log::error("Model not found: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Item not found'
+            ], 404);
+            
+        } catch (Exception $e) {
+            \Log::error("Failed to update item {$id}: " . $e->getMessage());
+            \Log::error("Stack trace: " . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
@@ -196,26 +160,29 @@ class ItemController extends Controller
             ], 500);
         }
     }
-    
-    public function destroy(string $id): JsonResponse
+
+    /**
+     * Remove the specified item.
+     */
+    public function destroy($id): JsonResponse
     {
         try {
-            $item = Item::find($id);
+            $this->itemRepository->delete($id);
             
-            if (!$item) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Item not found'
-                ], 404);
-            }
+            Log::info("Item {$id} deleted successfully");
 
-            $item->delete();
-            
             return response()->json([
                 'success' => true,
                 'message' => 'Item deleted successfully'
-            ]);
-        } catch (\Exception $e) {
+            ], 200);
+
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item not found'
+            ], 404);
+            
+        } catch (Exception $e) {
             Log::error("Failed to delete item {$id}: " . $e->getMessage());
             
             return response()->json([
@@ -224,5 +191,21 @@ class ItemController extends Controller
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
-    }*/
+    }
+
+    /**
+     * Test method for API connectivity
+     */
+    public function test(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => 'Test method is working!',
+            'timestamp' => now()->toDateTimeString(),
+            'data' => [
+                'status' => 'OK',
+                'version' => '1.0'
+            ]
+        ], 200);
+    }
 }

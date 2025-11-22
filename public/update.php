@@ -1,52 +1,45 @@
 <?php
-require_once __DIR__ . '/../bootstrap/app.php';
+// update.php - обновленная версия, работающая через API
 
-use Illuminate\Http\Request;
-use App\Repositories\ItemRepository;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $id = $_POST['id'] ?? '';
+    $name = $_POST['name'] ?? '';
+    $description = $_POST['description'] ?? '';
+    $price = $_POST['price'] ?? 0;
+    $quantity = $_POST['quantity'] ?? 0;
+    $is_active = isset($_POST['is_active']) ? '1' : '0';
 
-$app = require_once __DIR__ . '/../bootstrap/app.php';
-$app->make(Illuminate\Contracts\Http\Kernel::class)->handle(Request::capture());
+    // Подготовка данных для API
+    $postData = http_build_query([
+        'name' => $name,
+        'description' => $description,
+        'price' => $price,
+        'quantity' => $quantity,
+        'is_active' => $is_active,
+        '_method' => 'PUT' // Это для указания метода в Laravel
+    ]);
 
-try {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $request = Request::capture();
-        
-        $id = $request->input('id');
-        
-        // Валидация данных
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'quantity' => 'required|integer|min:0',
-            'is_active' => 'sometimes|string|in:true,false'
-        ]);
+    // Отправка PUT запроса к API
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, "http://localhost:8000/api/items/{$id}");
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Accept: application/json'
+    ]);
 
-        // Преобразование данных
-        $data = $validated;
-        if (isset($data['is_active'])) {
-            $data['is_active'] = $data['is_active'] === 'true';
-        }
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-        // Обновление элемента
-        $itemRepository = $app->make(ItemRepository::class);
-        $item = $itemRepository->update($id, $data);
+    // Обработка ответа
+    $result = json_decode($response, true);
 
-        $result = json_encode([
-            'success' => true,
-            'data' => $item,
-            'message' => 'Item updated successfully'
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-
-        header("Location: crud.php?update_result=" . urlencode($result) . "&update_success=1&tab=update");
-        exit;
+    if ($httpCode === 200 && $result['success']) {
+        header("Location: crud.php?update_result=" . urlencode(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . "&update_success=1&tab=update");
+    } else {
+        header("Location: crud.php?update_result=" . urlencode(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . "&update_success=0&tab=update");
     }
-} catch (Exception $e) {
-    $result = json_encode([
-        'success' => false,
-        'message' => 'Failed to update item: ' . $e->getMessage()
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    
-    header("Location: crud.php?update_result=" . urlencode($result) . "&update_success=0&tab=update");
     exit;
 }

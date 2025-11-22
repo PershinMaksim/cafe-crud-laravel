@@ -26,6 +26,7 @@
                 <input type="number" name="price" step="0.01" placeholder="Price" required>
                 <input type="number" name="quantity" placeholder="Quantity" required>
                 <label>
+                    <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" name="is_active" value="1"> Active
                 </label>
                 <button type="submit">Create Item</button>
@@ -89,6 +90,7 @@
                     <input type="number" name="price" step="0.01" value="<?php echo $item['price']; ?>" required>
                     <input type="number" name="quantity" value="<?php echo $item['quantity']; ?>" required>
                     <label>
+                        <input type="hidden" name="is_active" value="0">
                         <input type="checkbox" name="is_active" value="1">
                                <?php echo $item['is_active'] ? 'checked' : ''; ?>> Active
                     </label>

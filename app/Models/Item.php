@@ -9,16 +9,16 @@ class Item extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name',
-        'description',
-        'price',
-        'quantity',
-        'is_active'
-    ];
+    // Указываем правильное имя таблицы
+    protected $table = 'dishes';
 
+    // Указываем fillable поля
+    protected $fillable = ['name', 'description', 'price', 'quantity', 'is_active'];
+
+    // Указываем типы данных для автоматического приведения типов
     protected $casts = [
         'price' => 'decimal:2',
+        'quantity' => 'integer',
         'is_active' => 'boolean'
     ];
 }
