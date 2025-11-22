@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Cafe Backend API
 
 REST API для управления блюдами в кафе с веб-интерфейсом CRUD.
@@ -28,3 +29,7 @@ REST API для управления блюдами в кафе с веб-инт
 - Laravel 10
 - MySQL
 - REST API
+=======
+# cafe-crud-laravel
+RIP
+>>>>>>> 61b7b629931adc385e5614330b7a0830c55a3bec
