@@ -11,6 +11,21 @@ class UpdateItemRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        // Если чекбокс не отмечен, поле не приходит, устанавливаем false
+        if (!$this->has('is_active')) {
+            $this->merge([
+                'is_active' => false,
+            ]);
+        } else {
+            // Если пришло значение, преобразуем его в boolean
+            $this->merge([
+                'is_active' => (bool)$this->is_active,
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [

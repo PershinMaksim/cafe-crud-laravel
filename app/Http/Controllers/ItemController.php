@@ -6,6 +6,8 @@ use App\Models\Item;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\StoreItemRequest;
+use Exception;
 
 class ItemController extends Controller
 {
@@ -19,7 +21,6 @@ class ItemController extends Controller
 
     public function index()
     {
-        // Простой тест без репозитория
         return response()->json([
             'test' => true,
             'message' => 'Controller is working',
@@ -35,6 +36,48 @@ class ItemController extends Controller
             'id_received' => $id,
             'message' => 'Show method working'
         ]);
+    }
+
+    public function store(StoreItemRequest $request): JsonResponse
+    {
+        try {
+            \Log::info('Store method called', $request->all());
+            
+            // Простая валидация вручную для тестирования
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'price' => 'required|numeric|min:0',
+                'quantity' => 'required|integer|min:0',
+                'is_active' => 'sometimes|boolean'
+            ]);
+
+            \Log::info('Validation passed', $validated);
+
+            // Простой ответ без репозитория
+            return response()->json([
+                'success' => true,
+                'data' => array_merge($validated, ['id' => rand(100, 999)]),
+                'message' => 'Item created successfully (test)'
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed', $e->errors());
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (Exception $e) {
+            \Log::error('Store method error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create item',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
     }
     /*
     public function index(): JsonResponse
