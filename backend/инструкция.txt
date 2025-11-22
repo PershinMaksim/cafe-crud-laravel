@@ -1,0 +1,21 @@
+php artisan migrate
+
+php artisan db:seed --class=DishSeeder
+
+composer install
+
+php artisan key:generate
+
+php artisan serve
+
+php artisan route:list
+
+php artisan tinker
+
+php artisan optimize:clear
+
+php artisan migrate:fresh
+
+кавычки у дишес обязательно
+Illuminate\Support\Facades\Schema::dropIfExists('dishes');
+echo Schema::hasTable("dishes") ? "Таблица существует" : "Таблица не существует";
