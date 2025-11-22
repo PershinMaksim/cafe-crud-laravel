@@ -1,0 +1,27 @@
+# Текстовые файлы
+*.php text
+*.js text
+*.css text
+*.md text
+*.json text
+*.xml text
+*.yml text
+*.yaml text
+*.txt text
+
+# Бинарные файлы
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Автоматически исправлять концы строк
+*.php text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+
+# Игнорировать пробелы в тестовых файлах
+/tests/*.php -whitespace
